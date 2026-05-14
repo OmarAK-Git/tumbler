@@ -3,3 +3,4 @@ uvicorn>=0.23.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
 google-cloud-aiplatform>=1.30.0
+python-dotenv>=1.0.0
