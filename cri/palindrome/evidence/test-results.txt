@@ -1,0 +1,14 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-9.0.3, pluggy-1.5.0 -- C:\Users\oalan\scoop\apps\miniconda3\current\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\oalan\tumbler\cri\palindrome
+plugins: anyio-4.10.0
+collecting ... collected 5 items
+
+tests/test_palindrome.py::test_simple_palindrome PASSED                  [ 20%]
+tests/test_palindrome.py::test_simple_non_palindrome PASSED              [ 40%]
+tests/test_palindrome.py::test_mixed_case_with_punctuation PASSED        [ 60%]
+tests/test_palindrome.py::test_empty_string PASSED                       [ 80%]
+tests/test_palindrome.py::test_single_character PASSED                   [100%]
+
+============================== 5 passed in 0.02s ==============================

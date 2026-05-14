@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumbler</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Tumbler</h1>
+            <p class="subtitle">Drop your project. Get a verdict.</p>
+        </header>
+
+        <div id="error-banner" class="error-banner"></div>
+
+        <div class="upload-section" id="upload-section">
+            <div id="drop-zone">
+                <span class="icon">📁</span>
+                <h3>Drag and drop a folder or .zip file here</h3>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">or use the buttons below</p>
+                <div id="selected-files" style="margin-top: 1rem; font-weight: 500; color: #60a5fa;"></div>
+            </div>
+
+            <div class="controls">
+                <input type="file" id="folder-input" webkitdirectory directory multiple>
+                <button onclick="document.getElementById('folder-input').click()">Select Folder</button>
+                
+                <input type="file" id="zip-input" accept=".zip">
+                <button onclick="document.getElementById('zip-input').click()">Select .zip</button>
+                
+                <button class="primary" id="review-btn" disabled>Review Project</button>
+            </div>
+            
+            <div id="loading">
+                <span>⚡ Reviewing... this can take up to 60 seconds</span>
+            </div>
+        </div>
+
+        <div id="verdict-display">
+            <!-- Dynamically populated -->
+        </div>
+
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        const dropZone = document.getElementById('drop-zone');
+        const folderInput = document.getElementById('folder-input');
+        const zipInput = document.getElementById('zip-input');
+        const reviewBtn = document.getElementById('review-btn');
+        const loading = document.getElementById('loading');
+        const verdictDisplay = document.getElementById('verdict-display');
+        const uploadSection = document.getElementById('upload-section');
+        const selectedFilesDiv = document.getElementById('selected-files');
+        const errorBanner = document.getElementById('error-banner');
+
+        // Drag and drop events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            if (e.dataTransfer.items) {
+                selectedFiles = [];
+                const promises = [];
+                
+                for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                    const item = e.dataTransfer.items[i].webkitGetAsEntry();
+                    if (item) promises.push(traverseFileTree(item));
+                }
+                
+                Promise.all(promises).then(updateUI);
+            }
+        });
+
+        folderInput.addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            updateUI();
+        });
+
+        zipInput.addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            updateUI();
+        });
+
+        function traverseFileTree(item, path = '') {
+            return new Promise((resolve) => {
+                if (item.isFile) {
+                    item.file((file) => {
+                        Object.defineProperty(file, 'webkitRelativePath', {
+                            value: path + file.name,
+                            writable: false
+                        });
+                        selectedFiles.push(file);
+                        resolve();
+                    });
+                } else if (item.isDirectory) {
+                    const dirReader = item.createReader();
+                    dirReader.readEntries((entries) => {
+                        const promises = entries.map(entry => traverseFileTree(entry, path + item.name + '/'));
+                        Promise.all(promises).then(resolve);
+                    });
+                }
+            });
+        }
+
+        function updateUI() {
+            if (selectedFiles.length > 0) {
+                reviewBtn.disabled = false;
+                if (selectedFiles.length === 1 && selectedFiles[0].name.endsWith('.zip')) {
+                    selectedFilesDiv.textContent = `Selected: ${selectedFiles[0].name}`;
+                } else {
+                    selectedFilesDiv.textContent = `Selected: ${selectedFiles.length} files`;
+                }
+            } else {
+                reviewBtn.disabled = true;
+                selectedFilesDiv.textContent = '';
+            }
+        }
+
+        function showError(msg) {
+            errorBanner.innerHTML = `${msg} <button id="retry-btn" style="margin-left: 1rem; padding: 0.25rem 0.75rem; font-size: 0.85rem;">Retry</button>`;
+            errorBanner.style.display = 'flex';
+            errorBanner.style.alignItems = 'center';
+            errorBanner.style.justifyContent = 'space-between';
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                errorBanner.style.display = 'none';
+                reviewBtn.click();
+            });
+        }
+
+        reviewBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                const filename = file.webkitRelativePath || file.name;
+                formData.append('files', file, filename);
+            });
+
+            reviewBtn.disabled = true;
+            loading.style.display = 'flex';
+            verdictDisplay.style.display = 'none';
+            errorBanner.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/review', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                let data = null;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    data = await response.json();
+                }
+                
+                if (!response.ok) {
+                    if (response.status === 413) {
+                        showError("Upload too large.");
+                    } else if (data && data.error) {
+                        showError(data.error);
+                    } else {
+                        showError(`Server error (${response.status}): ${response.statusText}`);
+                    }
+                    return;
+                }
+                
+                renderVerdict(data);
+                
+            } catch (error) {
+                showError("Reviewer failed. Try again.");
+            } finally {
+                reviewBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function renderVerdict(data) {
+            verdictDisplay.innerHTML = '';
+            
+            const header = document.createElement('div');
+            header.className = `verdict-header ${data.verdict.toLowerCase()}`;
+            
+            const title = document.createElement('div');
+            title.className = 'verdict-title';
+            title.textContent = data.verdict;
+            
+            const summary = document.createElement('div');
+            summary.className = 'verdict-summary';
+            summary.textContent = data.summary;
+            
+            header.appendChild(title);
+            header.appendChild(summary);
+            verdictDisplay.appendChild(header);
+
+            const body = document.createElement('div');
+            body.className = 'verdict-body';
+
+            if (data.verdict === 'PASS') {
+                const evTitle = document.createElement('h3');
+                evTitle.textContent = "Evidence Relied On:";
+                evTitle.style.marginBottom = "0.5rem";
+                body.appendChild(evTitle);
+
+                const evList = document.createElement('ul');
+                evList.className = 'evidence-list';
+                data.evidence_relied_on.forEach(ev => {
+                    const li = document.createElement('li');
+                    li.textContent = ev;
+                    evList.appendChild(li);
+                });
+                body.appendChild(evList);
+
+                const disagree = document.createElement('p');
+                disagree.style.color = "var(--text-secondary)";
+                disagree.style.fontSize = "0.9rem";
+                disagree.innerHTML = `<strong>Disagree?</strong> Add a screenshot or note to <code>/evidence/disagreement/</code> in your project and re-upload.`;
+                body.appendChild(disagree);
+
+            } else if (data.verdict === 'FIX') {
+                const findingsTitle = document.createElement('h3');
+                findingsTitle.textContent = `Findings (${data.findings.length})`;
+                findingsTitle.style.marginBottom = "1rem";
+                body.appendChild(findingsTitle);
+
+                data.findings.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = `finding-card severity-${f.severity}`;
+                    
+                    const meta = document.createElement('div');
+                    meta.className = 'finding-meta';
+                    meta.innerHTML = `
+                        <span class="badge ${f.severity}">${f.severity}</span>
+                        <span>${f.category}</span>
+                        <span>📄 ${f.file}${f.line ? ':' + f.line : ''}</span>
+                    `;
+                    
+                    const desc = document.createElement('div');
+                    desc.className = 'finding-desc';
+                    desc.textContent = f.description;
+                    
+                    const why = document.createElement('div');
+                    why.className = 'finding-why';
+                    why.textContent = `Why it matters: ${f.why_it_matters}`;
+                    
+                    card.appendChild(meta);
+                    card.appendChild(desc);
+                    card.appendChild(why);
+                    body.appendChild(card);
+                });
+
+                // Antigravity Prompt
+                if (data.antigravity_prompt) {
+                    const promptContainer = document.createElement('div');
+                    promptContainer.className = 'prompt-container';
+                    
+                    const pHeader = document.createElement('div');
+                    pHeader.className = 'prompt-header';
+                    pHeader.innerHTML = `
+                        <h3>Antigravity Prompt</h3>
+                        <button class="copy-btn" id="copy-prompt-btn">Copy to Clipboard</button>
+                    `;
+                    
+                    const pContent = document.createElement('div');
+                    pContent.className = 'prompt-content';
+                    pContent.id = 'prompt-text-area';
+                    
+                    // Build the raw prompt text
+                    let promptText = `OBJECTIVE:\n${data.antigravity_prompt.objective}\n\n`;
+                    
+                    promptText += `CONSTRAINTS:\n`;
+                    data.antigravity_prompt.constraints.forEach(c => promptText += `- ${c}\n`);
+                    promptText += `\n`;
+                    
+                    promptText += `ACCEPTANCE CRITERIA:\n`;
+                    data.antigravity_prompt.acceptance_criteria.forEach(ac => promptText += `- ${ac}\n`);
+                    promptText += `\n`;
+                    
+                    if (data.antigravity_prompt.evidence_collection && data.antigravity_prompt.evidence_collection.length > 0) {
+                        promptText += `EVIDENCE COLLECTION COMMANDS (Run these after fixing!):\n`;
+                        data.antigravity_prompt.evidence_collection.forEach(ec => {
+                            promptText += `$ ${ec.command_or_action}\n`;
+                            promptText += `  -> produces: ${ec.produces}\n`;
+                        });
+                    }
+                    
+                    pContent.textContent = promptText;
+                    
+                    promptContainer.appendChild(pHeader);
+                    promptContainer.appendChild(pContent);
+                    body.appendChild(promptContainer);
+
+                    // Add instruction footer
+                    const inst = document.createElement('p');
+                    inst.style.marginTop = "1rem";
+                    inst.style.textAlign = "center";
+                    inst.style.color = "var(--text-secondary)";
+                    inst.textContent = "Paste this into Antigravity. After it's done, re-upload your project folder.";
+                    body.appendChild(inst);
+
+                    // Setup Copy
+                    setTimeout(() => {
+                        const copyBtn = document.getElementById('copy-prompt-btn');
+                        copyBtn.addEventListener('click', () => {
+                            navigator.clipboard.writeText(promptText);
+                            copyBtn.textContent = 'Copied!';
+                            copyBtn.style.background = 'var(--accent-pass)';
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copy to Clipboard';
+                                copyBtn.style.background = 'rgba(255,255,255,0.1)';
+                            }, 2000);
+                        });
+                    }, 0);
+                }
+            }
+
+            verdictDisplay.appendChild(body);
+            verdictDisplay.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
