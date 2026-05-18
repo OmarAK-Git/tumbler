@@ -252,3 +252,7 @@ These are the safety rails for letting Antigravity do the work:
 4. **Hard-cap each Antigravity session at a single phase.** If you find yourself with Antigravity 4 hours into one phase and it's still not done, stop. Read what it's built. Re-scope. Don't push through with momentum alone.
 
 5. **Keep the spec and plan checked in.** When you start the project, the very first thing in the repo is SPEC.md, IMPLEMENTATION_PLAN.md, and a placeholder README. Antigravity reads these before writing any code.
+
+***
+
+**Note: V1 is complete.**

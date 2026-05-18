@@ -328,6 +328,70 @@
                 }
             }
 
+            if (data.scanned && data.scanned.length > 0) {
+                const scannedSection = document.createElement('div');
+                scannedSection.className = 'scanned-section';
+                scannedSection.style.marginTop = '2rem';
+                scannedSection.style.borderTop = '1px solid var(--border-color)';
+                scannedSection.style.paddingTop = '1rem';
+                
+                const sTitle = document.createElement('h3');
+                sTitle.textContent = `Scanned files (${data.scanned.length})`;
+                sTitle.style.marginBottom = '0.5rem';
+                sTitle.style.fontSize = '0.9rem';
+                sTitle.style.color = 'var(--text-secondary)';
+                sTitle.style.cursor = 'pointer';
+                sTitle.style.display = 'flex';
+                sTitle.style.alignItems = 'center';
+                sTitle.style.justifyContent = 'space-between';
+                
+                const sList = document.createElement('ul');
+                sList.style.display = 'none';
+                sList.style.listStyleType = 'none';
+                sList.style.padding = '0';
+                sList.style.margin = '0';
+                sList.style.fontSize = '0.8rem';
+                sList.style.color = 'var(--text-secondary)';
+                
+                sTitle.addEventListener('click', () => {
+                    sList.style.display = sList.style.display === 'none' ? 'block' : 'none';
+                });
+                
+                const formatSize = (bytes) => {
+                    if (bytes < 1024) return bytes + ' B';
+                    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+                    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+                };
+                
+                data.scanned.forEach(sf => {
+                    const li = document.createElement('li');
+                    li.style.padding = '0.25rem 0';
+                    li.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    li.style.display = 'flex';
+                    li.style.justifyContent = 'space-between';
+                    
+                    const pSpan = document.createElement('span');
+                    pSpan.textContent = sf.path;
+                    
+                    const mSpan = document.createElement('span');
+                    let flags = [];
+                    flags.push(formatSize(sf.size_bytes));
+                    if (sf.redacted) flags.push('<span style="color:var(--accent-fix);">redacted</span>');
+                    if (sf.truncated) flags.push('<span style="color:#fbbf24;">truncated</span>');
+                    if (sf.skipped) flags.push(`<span style="color:#9ca3af;">skipped (${sf.skip_reason})</span>`);
+                    
+                    mSpan.innerHTML = flags.join(' | ');
+                    
+                    li.appendChild(pSpan);
+                    li.appendChild(mSpan);
+                    sList.appendChild(li);
+                });
+                
+                scannedSection.appendChild(sTitle);
+                scannedSection.appendChild(sList);
+                body.appendChild(scannedSection);
+            }
+
             verdictDisplay.appendChild(body);
             verdictDisplay.style.display = 'block';
         }

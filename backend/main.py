@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from .extract import extract_and_read
+from .extract import extract_and_read, UploadTooLargeError
 from .reviewer import review
 from .provider import VertexProvider
 
@@ -20,10 +20,12 @@ frontend_dir = Path(__file__).parent.parent / "frontend"
 async def review_endpoint(files: list[UploadFile] = File(...)):
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
-            extracted_files = await extract_and_read(Path(temp_dir), files)
+            scanned_files_data, synthetic_findings = await extract_and_read(Path(temp_dir), files)
             provider = VertexProvider()
-            verdict = await review(extracted_files, provider)
+            verdict = await review(scanned_files_data, synthetic_findings, provider)
             return verdict.model_dump()
+    except UploadTooLargeError as e:
+        return JSONResponse(status_code=413, content={"error": str(e)})
     except Exception as e:
         import traceback; traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": "Reviewer failed. Try again."})

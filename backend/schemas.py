@@ -6,15 +6,24 @@ class RubricResult(BaseModel):
     status: str
     reasoning: str
 
+class ScannedFile(BaseModel):
+    path: str
+    size_bytes: int
+    redacted: bool
+    truncated: bool
+    skipped: bool
+    skip_reason: str | None
+
 class PassVerdict(BaseModel):
     verdict: Literal["PASS"]
     summary: str
     evidence_relied_on: list[str]
     rubric_results: list[RubricResult]
+    scanned: list[ScannedFile]
 
 class Finding(BaseModel):
     severity: Literal["blocker", "major", "minor"]
-    category: Literal["security", "correctness", "spec_alignment", "missing_evidence", "secrets", "tests"]
+    category: Literal["security", "correctness", "spec_alignment", "missing_evidence", "secrets", "tests", "prompt_injection_attempt"]
     file: str
     line: int | None = None
     description: str
@@ -35,5 +44,6 @@ class FixVerdict(BaseModel):
     summary: str
     findings: list[Finding]
     antigravity_prompt: AntigravityPrompt
+    scanned: list[ScannedFile]
 
 Verdict = Annotated[PassVerdict | FixVerdict, Field(discriminator="verdict")]
