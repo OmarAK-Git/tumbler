@@ -27,12 +27,17 @@ async def extract_and_read(temp_dir: Path, upload_files: list[UploadFile]) -> tu
             shutil.copyfileobj(upload_files[0].file, f)
             
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # Check size before extraction to prevent zip bombs
+            # Check size before extraction, but only count files that will
+            # actually be processed (i.e. not in an ignored directory).
+            # This ensures .venv / .git / node_modules don't burn the budget.
             for info in zip_ref.infolist():
+                parts = Path(info.filename).parts
+                if any(part in IGNORE_DIRS for part in parts):
+                    continue
                 total_size += info.file_size
                 if total_size > MAX_TOTAL_SIZE:
                     raise UploadTooLargeError("Upload exceeds 50 MB limit.")
-            
+
             zip_ref.extractall(temp_dir)
             
         os.remove(zip_path)
