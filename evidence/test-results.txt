@@ -1,0 +1,21 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\oalan\tumbler
+plugins: anyio-4.13.0
+collected 10 items
+
+cri\palindrome\tests\test_palindrome.py .....                            [ 50%]
+scratch\reference_app\tests\test_main.py .                               [ 60%]
+test_app.py ...                                                          [ 90%]
+test_phase3.py .                                                         [100%]
+
+============================== warnings summary ===============================
+test_app.py::test_empty_readme
+test_app.py::test_hardcoded_secret
+test_app.py::test_small_app
+test_phase3.py::test_phase3_all
+  C:\Users\oalan\tumbler\.venv\Lib\site-packages\vertexai\generative_models\_generative_models.py:433: UserWarning: This feature is deprecated as of June 24, 2025 and will be removed on June 24, 2026. For details, see https://cloud.google.com/vertex-ai/generative-ai/docs/deprecations/genai-vertexai-sdk.
+    warning_logs.show_deprecation_warning()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 10 passed, 4 warnings in 178.18s (0:02:58) ==================

@@ -5,7 +5,7 @@ from backend.main import app
 
 client = TestClient(app)
 
-def run_tests():
+def test_phase3_all():
     print("Testing TUMBLER_LOG_PROMPT and secret redaction...")
     os.environ["TUMBLER_LOG_PROMPT"] = "1"
     code_with_secret = b'aws_access_key = "AKIAIOSFODNN7EXAMPLE"'
@@ -93,7 +93,7 @@ def run_tests():
 
 if __name__ == "__main__":
     try:
-        run_tests()
+        test_phase3_all()
         print("\nAll phase 3 tests passed successfully!")
     except AssertionError as e:
         print(f"\nTEST FAILED: {e}")

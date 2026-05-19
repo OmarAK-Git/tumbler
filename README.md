@@ -67,3 +67,27 @@ Tumbler is deliberately small. In V1, it explicitly does not:
 
 - **Secret Scanning:** Tumbler's pre-filter regex catches only the most common secret patterns (AWS, GitHub tokens, JWTs). It is not a complete SAST tool.
 - **Security Checks:** The reviewer detects obvious, surface-level security issues (e.g., SQL injection, command injection) that are discernible from code structure. Deep audits, data-flow analysis, and runtime security require other tooling.
+
+## V1 Finalization & Self-Approval
+
+Tumbler V1 is officially finalized and complete. To ensure strict compliance with its own development guidelines and review specifications, **Tumbler was executed against itself**. 
+
+It successfully scanned its own repository, ran its entire test suite, ran dependency vulnerability audits, verified the presence of proper evidence, and ultimately **approved itself** with a clean **PASS** verdict!
+
+### UI Screenshot
+Here is the Tumbler web interface loaded with the self-review results:
+
+![Tumbler UI Screenshot](evidence/main-page.png)
+
+### Compliance Evidence
+All compliance evidence from the self-approval run is persisted in the repository:
+- **[Test Results](evidence/test-results.txt)**: Verifies that all 10 suite tests pass without regressions.
+- **[Dependencies Audit](evidence/dependencies-audit.txt)**: A `pip-audit` scan showing zero known vulnerabilities in requirements.
+- **[Main Page Screenshot](evidence/main-page.png)**: The screenshot shown above.
+
+## V2 Roadmap & Future Ideas
+
+For future versions of Tumbler, we are exploring the following capabilities:
+1. **Adversarial Feature Cross-Review**: Integrating an interactive prompt section for new feature requests. The proposed feature would be run through a multi-agent adversarial LLM setup (e.g., Builder vs. Red Team) to poke holes, discover edge cases, evaluate threat models, and refine the requirements before any code is written.
+2. **Expanded Pre-Filters**: Broader regex patterns for secrets and additional heuristics to catch framework-specific bugs early.
+3. **Advanced Evidence Formats**: Support for custom test output formats and multiple screenshot fixtures.
