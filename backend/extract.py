@@ -43,6 +43,9 @@ async def extract_and_read(temp_dir: Path, upload_files: list[UploadFile]) -> tu
         os.remove(zip_path)
     else:
         for uf in upload_files:
+            parts = Path(uf.filename).parts
+            if any(part in IGNORE_DIRS for part in parts):
+                continue
             file_path = temp_dir / uf.filename
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "wb") as f:
