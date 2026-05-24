@@ -328,6 +328,87 @@
                 }
             }
 
+            // Crucible Push Handoff Integration Section
+            // PASS-only gating rationale:
+            // Crucible is for hardening new-feature prompts against clean codebases.
+            // Address the FIX findings before pushing to Crucible.
+            const pushContainer = document.createElement('div');
+            pushContainer.style.marginTop = '1.5rem';
+            pushContainer.style.padding = '1rem';
+            pushContainer.style.border = '1px solid var(--border-color)';
+            pushContainer.style.borderRadius = '8px';
+            pushContainer.style.background = 'rgba(255, 255, 255, 0.02)';
+            
+            const checkboxLabel = document.createElement('label');
+            checkboxLabel.style.display = 'flex';
+            checkboxLabel.style.alignItems = 'center';
+            checkboxLabel.style.gap = '0.5rem';
+            checkboxLabel.style.cursor = data.verdict === 'PASS' ? 'pointer' : 'not-allowed';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'push-to-crucible-cb';
+            
+            if (data.verdict === 'FIX') {
+                checkbox.disabled = true;
+                pushContainer.title = "Crucible is for hardening new-feature prompts against clean codebases. Address the FIX findings before pushing to Crucible.";
+                // Comment rationale: Crucible is gated on PASS verdicts to ensure clean start
+                const commentNode = document.createComment("Crucible push is gated on PASS verdicts only.");
+                pushContainer.appendChild(commentNode);
+            }
+            
+            const labelText = document.createElement('span');
+            labelText.textContent = "Push to Crucible after review";
+            labelText.style.fontWeight = '500';
+            if (data.verdict === 'FIX') {
+                labelText.style.color = 'var(--text-secondary)';
+                labelText.style.textDecoration = 'line-through';
+            }
+            
+            checkboxLabel.appendChild(checkbox);
+            checkboxLabel.appendChild(labelText);
+            pushContainer.appendChild(checkboxLabel);
+            
+            const pushStatus = document.createElement('div');
+            pushStatus.style.marginTop = '0.5rem';
+            pushStatus.style.fontSize = '0.9rem';
+            pushStatus.style.display = 'none';
+            pushContainer.appendChild(pushStatus);
+            
+            if (data.verdict === 'PASS') {
+                checkbox.addEventListener('change', async () => {
+                    if (checkbox.checked) {
+                        pushStatus.style.display = 'block';
+                        pushStatus.style.color = 'var(--text-secondary)';
+                        pushStatus.textContent = "⚡ Preparing handoff...";
+                        checkbox.disabled = true;
+                        
+                        try {
+                            const res = await fetch(`/api/sessions/${data.session_id}/push-to-crucible`, {
+                                method: 'POST'
+                            });
+                            const resData = await res.json();
+                            if (res.ok) {
+                                pushStatus.style.color = '#10b981';
+                                pushStatus.innerHTML = `Handoff written to <code>~/.crucible/incoming/${data.session_id}.json</code>. Open Crucible to continue.`;
+                            } else {
+                                checkbox.checked = false;
+                                checkbox.disabled = false;
+                                pushStatus.style.color = '#ef4444';
+                                pushStatus.textContent = resData.error || "Failed to push to Crucible.";
+                            }
+                        } catch (err) {
+                            checkbox.checked = false;
+                            checkbox.disabled = false;
+                            pushStatus.style.color = '#ef4444';
+                            pushStatus.textContent = "Error: Failed to connect to server.";
+                        }
+                    }
+                });
+            }
+            
+            body.appendChild(pushContainer);
+
             if (data.scanned && data.scanned.length > 0) {
                 const scannedSection = document.createElement('div');
                 scannedSection.className = 'scanned-section';

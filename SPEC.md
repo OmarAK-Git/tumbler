@@ -173,6 +173,10 @@ V2 can add an Ollama-backed local provider implementing the same interface, no o
 
 Vertex AI calls in V1 use Application Default Credentials (ADC) for the user's personal GCP project. Tool use is disabled — text generation only. The provider validates the LLM's response against the verdict schema; if validation fails, it returns FIX with a single finding "reviewer output was malformed — retry the upload."
 
+## Pipeline Integration (Crucible Handoff)
+
+Tumbler integrates with Crucible (an adversarial prompt-hardening engine) via a one-way file-based handoff. When Tumbler produces a PASS verdict, the user can check the "Push to Crucible after review" checkbox in the UI, invoking the `POST /api/sessions/{id}/push-to-crucible` endpoint. This endpoint writes a handoff JSON file containing the cleaned, redacted, and `<evidence>`-delimited corpus bundle to the local path `~/.crucible/incoming/<session_id>.json`. Crucible then ingests this file to start the prompt-debate session against the clean codebase. This push is strictly gated to PASS verdicts only.
+
 ## Tech stack
 
 - **Backend:** Python 3.11+, FastAPI, `google-cloud-aiplatform` for Vertex AI, `pydantic` for schema validation.
