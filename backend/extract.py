@@ -9,7 +9,7 @@ from .secrets import scan_for_secrets
 IGNORE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "env", "dist", "build", ".next", "out", ".ipynb_checkpoints"}
 MAX_TOTAL_SIZE = 50 * 1024 * 1024
 MAX_FILE_SIZE = 1 * 1024 * 1024
-KNOWN_BINARIES = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".gz", ".exe", ".bin", ".so", ".dylib", ".dll", ".db", ".sqlite", ".sqlite3", ".db3", ".pkl", ".pickle", ".pyc", ".pyd"}
+KNOWN_BINARIES = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".gz", ".exe", ".bin", ".so", ".dylib", ".dll", ".db", ".sqlite", ".sqlite3", ".db3", ".pkl", ".pickle", ".pyc", ".pyd", ".jsonl"}
 
 class UploadTooLargeError(Exception):
     pass
@@ -65,6 +65,10 @@ async def extract_and_read(temp_dir: Path, upload_files: list[UploadFile]) -> tu
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
         
         for file_name in files:
+            # Skip large evaluation runner log files to prevent token count overflow
+            if "eval" in file_name.lower() and file_name.endswith(".txt"):
+                continue
+                
             file_path = Path(root) / file_name
             rel_path = str(file_path.relative_to(temp_dir)).replace("\\", "/")
             
