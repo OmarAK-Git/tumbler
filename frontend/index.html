@@ -148,6 +148,11 @@
             const formData = new FormData();
             selectedFiles.forEach(file => {
                 const filename = file.webkitRelativePath || file.name;
+                const parts = filename.split(/[/\\]/);
+                const isIgnored = parts.some(part => 
+                    ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build'].includes(part)
+                );
+                if (isIgnored) return;
                 formData.append('files', file, filename);
             });
 
