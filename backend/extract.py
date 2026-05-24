@@ -9,7 +9,7 @@ from .secrets import scan_for_secrets
 IGNORE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "env", "dist", "build", ".next", "out", ".ipynb_checkpoints"}
 MAX_TOTAL_SIZE = 50 * 1024 * 1024
 MAX_FILE_SIZE = 1 * 1024 * 1024
-KNOWN_BINARIES = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".gz", ".exe", ".bin", ".so", ".dylib", ".dll"}
+KNOWN_BINARIES = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".gz", ".exe", ".bin", ".so", ".dylib", ".dll", ".db", ".sqlite", ".sqlite3", ".db3", ".pkl", ".pickle", ".pyc", ".pyd"}
 
 class UploadTooLargeError(Exception):
     pass
@@ -33,6 +33,9 @@ async def extract_and_read(temp_dir: Path, upload_files: list[UploadFile]) -> tu
             for info in zip_ref.infolist():
                 parts = Path(info.filename).parts
                 if any(part in IGNORE_DIRS for part in parts):
+                    continue
+                ext = Path(info.filename).suffix.lower()
+                if ext in KNOWN_BINARIES:
                     continue
                 total_size += info.file_size
                 if total_size > MAX_TOTAL_SIZE:
