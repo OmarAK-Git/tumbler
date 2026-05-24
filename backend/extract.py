@@ -6,7 +6,7 @@ from fastapi import UploadFile
 
 from .secrets import scan_for_secrets
 
-IGNORE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "build"}
+IGNORE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "env", "dist", "build", ".next", "out", ".ipynb_checkpoints"}
 MAX_TOTAL_SIZE = 50 * 1024 * 1024
 MAX_FILE_SIZE = 1 * 1024 * 1024
 KNOWN_BINARIES = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".tar", ".gz", ".exe", ".bin", ".so", ".dylib", ".dll"}
